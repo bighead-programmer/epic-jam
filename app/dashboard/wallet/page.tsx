@@ -1,90 +1,116 @@
 "use client"
 
 import { useState } from "react"
-import { ArrowDown, ArrowUp, Plus, Trophy } from "lucide-react"
+import { ArrowDown, ArrowUp, Plus } from "lucide-react"
 
+import { useAuth } from "@/lib/auth-context"
+import { useData, type Transaction } from "@/lib/data-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function WalletPage() {
-  const [amount, setAmount] = useState("")
-  const [paymentMethod, setPaymentMethod] = useState("ecocash")
+  const { user } = useAuth()
+  const { transactions, addFunds, withdrawFunds } = useData()
+  const [depositAmount, setDepositAmount] = useState("")
+  const [withdrawAmount, setWithdrawAmount] = useState("")
+  const [isDepositing, setIsDepositing] = useState(false)
+  const [isWithdrawing, setIsWithdrawing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleDeposit = () => {
+    setError(null)
+    const amount = Number.parseFloat(depositAmount)
+
+    if (isNaN(amount) || amount <= 0) {
+      setError("Please enter a valid amount")
+      return
+    }
+
+    setIsDepositing(true)
+
+    // Simulate API call
+    setTimeout(() => {
+      addFunds(amount)
+      setDepositAmount("")
+      setIsDepositing(false)
+    }, 1000)
+  }
+
+  const handleWithdraw = () => {
+    setError(null)
+    const amount = Number.parseFloat(withdrawAmount)
+
+    if (isNaN(amount) || amount <= 0) {
+      setError("Please enter a valid amount")
+      return
+    }
+
+    if (user && amount > user.balance) {
+      setError("Insufficient balance")
+      return
+    }
+
+    setIsWithdrawing(true)
+
+    // Simulate API call
+    setTimeout(() => {
+      withdrawFunds(amount)
+      setWithdrawAmount("")
+      setIsWithdrawing(false)
+    }, 1000)
+  }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white md:text-3xl">Wallet</h1>
+        <h1 className="text-2xl font-bold text-white">Wallet</h1>
         <p className="text-gray-300">Manage your funds and payment methods</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="border-gray-700 bg-gray-800/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg text-white">Available Balance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end gap-2">
-              <span className="text-3xl font-bold text-white">$120.50</span>
-              <span className="text-sm text-green-500">+$25.00 this week</span>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button className="w-full bg-purple-600 hover:bg-purple-700">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Funds
-            </Button>
-          </CardFooter>
-        </Card>
-
-        <Card className="border-gray-700 bg-gray-800/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg text-white">Pending Bets</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end gap-2">
-              <span className="text-3xl font-bold text-white">$50.00</span>
-              <span className="text-sm text-yellow-500">3 active bets</span>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full border-gray-700 bg-gray-700/50 text-white hover:bg-gray-700">
-              View Bets
-            </Button>
-          </CardFooter>
-        </Card>
-
-        <Card className="border-gray-700 bg-gray-800/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg text-white">Total Winnings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end gap-2">
-              <span className="text-3xl font-bold text-white">$350.75</span>
-              <span className="text-sm text-green-500">All time</span>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full border-gray-700 bg-gray-700/50 text-white hover:bg-gray-700">
-              View History
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
+      <Card className="border-gray-700 bg-gray-800/50">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg text-white">Available Balance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-end gap-2">
+            <span className="text-3xl font-bold text-white">${user?.balance.toFixed(2)}</span>
+          </div>
+        </CardContent>
+        <CardFooter className="flex gap-2">
+          <Button
+            onClick={() => setDepositAmount("10")}
+            variant="outline"
+            className="flex-1 border-gray-700 bg-gray-700/50 text-white hover:bg-gray-700"
+          >
+            $10
+          </Button>
+          <Button
+            onClick={() => setDepositAmount("25")}
+            variant="outline"
+            className="flex-1 border-gray-700 bg-gray-700/50 text-white hover:bg-gray-700"
+          >
+            $25
+          </Button>
+          <Button
+            onClick={() => setDepositAmount("50")}
+            variant="outline"
+            className="flex-1 border-gray-700 bg-gray-700/50 text-white hover:bg-gray-700"
+          >
+            $50
+          </Button>
+        </CardFooter>
+      </Card>
 
       <Tabs defaultValue="add-funds" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-gray-800">
+        <TabsList className="grid w-full grid-cols-2 bg-gray-800">
           <TabsTrigger value="add-funds" className="data-[state=active]:bg-purple-600">
             Add Funds
           </TabsTrigger>
           <TabsTrigger value="withdraw" className="data-[state=active]:bg-purple-600">
             Withdraw
-          </TabsTrigger>
-          <TabsTrigger value="history" className="data-[state=active]:bg-purple-600">
-            Transaction History
           </TabsTrigger>
         </TabsList>
 
@@ -92,11 +118,10 @@ export default function WalletPage() {
           <Card className="border-gray-700 bg-gray-800/50">
             <CardHeader>
               <CardTitle className="text-white">Add Funds to Your Wallet</CardTitle>
-              <CardDescription className="text-gray-300">
-                Choose your payment method and enter the amount
-              </CardDescription>
+              <CardDescription className="text-gray-300">Enter the amount you want to add</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {error && <div className="rounded-md bg-red-500/20 p-3 text-sm text-red-500">{error}</div>}
               <div className="space-y-2">
                 <Label htmlFor="amount" className="text-gray-200">
                   Amount
@@ -109,74 +134,34 @@ export default function WalletPage() {
                     id="amount"
                     type="number"
                     placeholder="0.00"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value)}
                     className="border-gray-700 bg-gray-700/50 pl-8 text-white placeholder:text-gray-400"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-gray-200">Payment Method</Label>
-                <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-2 gap-4">
-                  <div>
-                    <RadioGroupItem value="ecocash" id="ecocash-add" className="peer sr-only" />
-                    <Label
-                      htmlFor="ecocash-add"
-                      className="flex flex-col items-center justify-between rounded-md border-2 border-gray-700 bg-gray-800 p-4 hover:bg-gray-700 hover:text-white peer-data-[state=checked]:border-purple-500 [&:has([data-state=checked])]:border-purple-500"
-                    >
-                      <span className="mb-1 text-lg font-bold">EcoCash</span>
-                      <span className="text-xs text-gray-400">Mobile Money</span>
-                    </Label>
-                  </div>
-                  <div>
-                    <RadioGroupItem value="paypal" id="paypal-add" className="peer sr-only" />
-                    <Label
-                      htmlFor="paypal-add"
-                      className="flex flex-col items-center justify-between rounded-md border-2 border-gray-700 bg-gray-800 p-4 hover:bg-gray-700 hover:text-white peer-data-[state=checked]:border-purple-500 [&:has([data-state=checked])]:border-purple-500"
-                    >
-                      <span className="mb-1 text-lg font-bold">PayPal</span>
-                      <span className="text-xs text-gray-400">Online Payment</span>
-                    </Label>
-                  </div>
-                </RadioGroup>
+              <div className="rounded-md border border-yellow-500/20 bg-yellow-500/10 p-4 text-yellow-500">
+                <p className="text-sm">This is a demo app. In a real app, this would connect to a payment processor.</p>
               </div>
-
-              {paymentMethod === "ecocash" && (
-                <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-gray-200">
-                    Phone Number
-                  </Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+263 7X XXX XXXX"
-                    className="border-gray-700 bg-gray-700/50 text-white placeholder:text-gray-400"
-                  />
-                </div>
-              )}
-
-              {paymentMethod === "paypal" && (
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-gray-200">
-                    PayPal Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="your@email.com"
-                    className="border-gray-700 bg-gray-700/50 text-white placeholder:text-gray-400"
-                  />
-                </div>
-              )}
             </CardContent>
             <CardFooter>
               <Button
+                onClick={handleDeposit}
                 className="w-full bg-purple-600 hover:bg-purple-700"
-                disabled={!amount || Number.parseFloat(amount) <= 0}
+                disabled={isDepositing}
               >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Funds
+                {isDepositing ? (
+                  <>
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Funds
+                  </>
+                )}
               </Button>
             </CardFooter>
           </Card>
@@ -191,10 +176,11 @@ export default function WalletPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {error && <div className="rounded-md bg-red-500/20 p-3 text-sm text-red-500">{error}</div>}
               <div className="rounded-md border border-gray-700 bg-gray-700/30 p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-300">Available for withdrawal</span>
-                  <span className="font-bold text-white">$120.50</span>
+                  <span className="font-bold text-white">${user?.balance.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -210,166 +196,129 @@ export default function WalletPage() {
                     id="withdraw-amount"
                     type="number"
                     placeholder="0.00"
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
                     className="border-gray-700 bg-gray-700/50 pl-8 text-white placeholder:text-gray-400"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-gray-200">Withdrawal Method</Label>
-                <RadioGroup defaultValue="ecocash" className="grid grid-cols-2 gap-4">
-                  <div>
-                    <RadioGroupItem value="ecocash" id="ecocash-withdraw" className="peer sr-only" />
-                    <Label
-                      htmlFor="ecocash-withdraw"
-                      className="flex flex-col items-center justify-between rounded-md border-2 border-gray-700 bg-gray-800 p-4 hover:bg-gray-700 hover:text-white peer-data-[state=checked]:border-purple-500 [&:has([data-state=checked])]:border-purple-500"
-                    >
-                      <span className="mb-1 text-lg font-bold">EcoCash</span>
-                      <span className="text-xs text-gray-400">Mobile Money</span>
-                    </Label>
-                  </div>
-                  <div>
-                    <RadioGroupItem value="paypal" id="paypal-withdraw" className="peer sr-only" />
-                    <Label
-                      htmlFor="paypal-withdraw"
-                      className="flex flex-col items-center justify-between rounded-md border-2 border-gray-700 bg-gray-800 p-4 hover:bg-gray-700 hover:text-white peer-data-[state=checked]:border-purple-500 [&:has([data-state=checked])]:border-purple-500"
-                    >
-                      <span className="mb-1 text-lg font-bold">PayPal</span>
-                      <span className="text-xs text-gray-400">Online Payment</span>
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone-withdraw" className="text-gray-200">
-                  Phone Number
-                </Label>
-                <Input
-                  id="phone-withdraw"
-                  type="tel"
-                  placeholder="+263 7X XXX XXXX"
-                  className="border-gray-700 bg-gray-700/50 text-white placeholder:text-gray-400"
-                />
-              </div>
-
               <div className="rounded-md border border-yellow-500/20 bg-yellow-500/10 p-4 text-yellow-500">
-                <p className="text-sm">
-                  Withdrawals are processed within 24 hours. A 2% processing fee applies to all withdrawals.
-                </p>
+                <p className="text-sm">This is a demo app. In a real app, this would connect to a payment processor.</p>
               </div>
             </CardContent>
             <CardFooter>
-              <Button className="w-full bg-purple-600 hover:bg-purple-700">
-                <ArrowUp className="mr-2 h-4 w-4" />
-                Withdraw Funds
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="history" className="mt-6">
-          <Card className="border-gray-700 bg-gray-800/50">
-            <CardHeader>
-              <CardTitle className="text-white">Transaction History</CardTitle>
-              <CardDescription className="text-gray-300">View all your past transactions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <TransactionItem type="deposit" amount="$50.00" method="PayPal" date="Yesterday" status="completed" />
-                <TransactionItem
-                  type="bet-win"
-                  amount="$20.00"
-                  method="Call of Duty: Mobile vs Chris Evans"
-                  date="2 days ago"
-                  status="completed"
-                />
-                <TransactionItem
-                  type="bet-loss"
-                  amount="$10.00"
-                  method="FIFA 24 vs James Wilson"
-                  date="3 days ago"
-                  status="completed"
-                />
-                <TransactionItem
-                  type="withdrawal"
-                  amount="$100.00"
-                  method="EcoCash"
-                  date="Last week"
-                  status="completed"
-                />
-                <TransactionItem type="deposit" amount="$75.00" method="EcoCash" date="Last week" status="completed" />
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full border-gray-700 bg-gray-700/50 text-white hover:bg-gray-700">
-                View All Transactions
+              <Button
+                onClick={handleWithdraw}
+                className="w-full bg-purple-600 hover:bg-purple-700"
+                disabled={isWithdrawing}
+              >
+                {isWithdrawing ? (
+                  <>
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <ArrowUp className="mr-2 h-4 w-4" />
+                    Withdraw Funds
+                  </>
+                )}
               </Button>
             </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Transaction History */}
+      <div>
+        <h2 className="mb-4 text-xl font-bold text-white">Transaction History</h2>
+        <Card className="border-gray-700 bg-gray-800/50">
+          <CardContent className="p-0">
+            <div className="divide-y divide-gray-700">
+              {transactions.length > 0 ? (
+                transactions.map((transaction) => <TransactionItem key={transaction.id} transaction={transaction} />)
+              ) : (
+                <div className="p-4 text-center text-gray-300">No transactions yet</div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
 
-function TransactionItem({
-  type,
-  amount,
-  method,
-  date,
-  status,
-}: {
-  type: "deposit" | "withdrawal" | "bet-win" | "bet-loss"
-  amount: string
-  method: string
-  date: string
-  status: "pending" | "completed" | "failed"
-}) {
+function TransactionItem({ transaction }: { transaction: Transaction }) {
   const icons = {
     deposit: <ArrowDown className="h-5 w-5 text-green-500" />,
     withdrawal: <ArrowUp className="h-5 w-5 text-red-500" />,
-    "bet-win": <Trophy className="h-5 w-5 text-yellow-500" />,
-    "bet-loss": <Trophy className="h-5 w-5 text-gray-500" />,
+    bet_win: <Plus className="h-5 w-5 text-green-500" />,
+    bet_loss: <ArrowUp className="h-5 w-5 text-red-500" />,
+    refund: <ArrowDown className="h-5 w-5 text-blue-500" />,
   }
 
   const titles = {
     deposit: "Deposit",
     withdrawal: "Withdrawal",
-    "bet-win": "Bet Win",
-    "bet-loss": "Bet Loss",
+    bet_win: "Bet Win",
+    bet_loss: "Bet Loss",
+    refund: "Refund",
   }
 
   const amountColors = {
     deposit: "text-green-500",
     withdrawal: "text-red-500",
-    "bet-win": "text-green-500",
-    "bet-loss": "text-red-500",
+    bet_win: "text-green-500",
+    bet_loss: "text-red-500",
+    refund: "text-blue-500",
   }
 
   const amountPrefix = {
     deposit: "+",
-    withdrawal: "-",
-    "bet-win": "+",
-    "bet-loss": "-",
+    withdrawal: "",
+    bet_win: "+",
+    bet_loss: "",
+    refund: "",
   }
 
   return (
-    <div className="flex items-center gap-4">
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-700/50">{icons[type]}</div>
+    <div className="flex items-center gap-4 p-4">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-700/50">
+        {icons[transaction.type]}
+      </div>
       <div className="flex-1">
         <div className="flex items-center justify-between">
-          <p className="font-medium text-white">{titles[type]}</p>
-          <p className={`font-bold ${amountColors[type]}`}>
-            {amountPrefix[type]}
-            {amount}
+          <p className="font-medium text-white">{titles[transaction.type]}</p>
+          <p className={`font-bold ${amountColors[transaction.type]}`}>
+            {amountPrefix[transaction.type]}${Math.abs(transaction.amount).toFixed(2)}
           </p>
         </div>
         <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-400">{method}</p>
-          <p className="text-xs text-gray-400">{date}</p>
+          <p className="text-sm text-gray-400">{transaction.description}</p>
+          <p className="text-xs text-gray-400">{formatDate(transaction.createdAt)}</p>
         </div>
       </div>
     </div>
   )
+}
+
+function formatDate(dateString: string) {
+  const date = new Date(dateString)
+  const now = new Date()
+
+  // If today
+  if (date.toDateString() === now.toDateString()) {
+    return `Today, ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+  }
+
+  // If yesterday
+  const yesterday = new Date(now)
+  yesterday.setDate(now.getDate() - 1)
+  if (date.toDateString() === yesterday.toDateString()) {
+    return `Yesterday, ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+  }
+
+  // Otherwise
+  return date.toLocaleDateString()
 }

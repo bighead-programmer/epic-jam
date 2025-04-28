@@ -1,9 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Check, ChevronDown, GamepadIcon as GameController } from "lucide-react"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useAuth } from "@/lib/auth-context"
+import { useData, type Game, type Friend } from "@/lib/data-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
@@ -13,38 +15,53 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 
-const games = [
-  { id: "1", name: "Call of Duty: Mobile", platform: "Mobile" },
-  { id: "2", name: "PUBG Mobile", platform: "Mobile" },
-  { id: "3", name: "FIFA 24", platform: "Console" },
-  { id: "4", name: "Fortnite", platform: "Cross-platform" },
-  { id: "5", name: "Apex Legends", platform: "Cross-platform" },
-  { id: "6", name: "League of Legends", platform: "PC" },
-]
-
-const friends = [
-  { id: "1", name: "Alex Johnson", status: "online", avatar: "/placeholder.svg?height=40&width=40" },
-  { id: "2", name: "Sarah Williams", status: "online", avatar: "/placeholder.svg?height=40&width=40" },
-  { id: "3", name: "Mike Thompson", status: "offline", avatar: "/placeholder.svg?height=40&width=40" },
-  { id: "4", name: "Emily Davis", status: "online", avatar: "/placeholder.svg?height=40&width=40" },
-  { id: "5", name: "Chris Evans", status: "offline", avatar: "/placeholder.svg?height=40&width=40" },
-]
-
 export default function NewBetPage() {
-  const [selectedGame, setSelectedGame] = useState("")
-  const [selectedFriend, setSelectedFriend] = useState("")
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { user } = useAuth()
+  const { games, friends, addBet } = useData()
+
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null)
+  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null)
   const [gameOpen, setGameOpen] = useState(false)
   const [friendOpen, setFriendOpen] = useState(false)
   const [step, setStep] = useState(1)
   const [betAmount, setBetAmount] = useState("")
-  const [paymentMethod, setPaymentMethod] = useState("ecocash")
+  const [paymentMethod, setPaymentMethod] = useState("wallet")
+
+  // Check for gameId in URL params
+  useEffect(() => {
+    const gameId = searchParams.get("gameId")
+    if (gameId) {
+      const game = games.find((g) => g.id === gameId)
+      if (game) {
+        setSelectedGame(game)
+      }
+    }
+  }, [searchParams, games])
 
   const handleNextStep = () => {
     if (step < 3) {
       setStep(step + 1)
     } else {
-      // Submit form logic would go here
-      alert("Bet created successfully!")
+      // Submit form
+      if (!selectedGame || !selectedFriend || !betAmount || !user) return
+
+      const amount = Number.parseFloat(betAmount)
+
+      // Create bet
+      addBet({
+        gameId: selectedGame.id,
+        gameName: selectedGame.name,
+        creatorId: user.id,
+        opponentId: selectedFriend.id,
+        opponentName: selectedFriend.name,
+        amount,
+        status: "pending",
+      })
+
+      // Navigate to my bets page
+      router.push("/dashboard/my-bets")
     }
   }
 
@@ -54,9 +71,15 @@ export default function NewBetPage() {
     }
   }
 
+  const isNextDisabled = () => {
+    if (step === 1) return !selectedGame || !selectedFriend
+    if (step === 2) return !betAmount || Number.parseFloat(betAmount) <= 0
+    return false
+  }
+
   return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="mb-6 text-2xl font-bold text-white md:text-3xl">Create a New Bet</h1>
+    <div className="mx-auto max-w-md">
+      <h1 className="mb-6 text-2xl font-bold text-white">Create a New Bet</h1>
 
       <Card className="border-gray-700 bg-gray-800/50">
         <CardHeader>
@@ -95,7 +118,7 @@ export default function NewBetPage() {
                       aria-expanded={gameOpen}
                       className="w-full justify-between border-gray-700 bg-gray-700/50 text-left text-white"
                     >
-                      {selectedGame ? games.find((game) => game.id === selectedGame)?.name : "Select a game..."}
+                      {selectedGame ? selectedGame.name : "Select a game..."}
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -109,8 +132,8 @@ export default function NewBetPage() {
                             <CommandItem
                               key={game.id}
                               value={game.id}
-                              onSelect={(currentValue) => {
-                                setSelectedGame(currentValue === selectedGame ? "" : currentValue)
+                              onSelect={() => {
+                                setSelectedGame(game)
                                 setGameOpen(false)
                               }}
                               className="hover:bg-gray-700 hover:text-white"
@@ -118,7 +141,7 @@ export default function NewBetPage() {
                               <GameController className="mr-2 h-4 w-4 text-purple-500" />
                               <span>{game.name}</span>
                               <span className="ml-auto text-xs text-gray-400">{game.platform}</span>
-                              {selectedGame === game.id && <Check className="ml-2 h-4 w-4 text-purple-500" />}
+                              {selectedGame?.id === game.id && <Check className="ml-2 h-4 w-4 text-purple-500" />}
                             </CommandItem>
                           ))}
                         </CommandGroup>
@@ -140,9 +163,7 @@ export default function NewBetPage() {
                       aria-expanded={friendOpen}
                       className="w-full justify-between border-gray-700 bg-gray-700/50 text-left text-white"
                     >
-                      {selectedFriend
-                        ? friends.find((friend) => friend.id === selectedFriend)?.name
-                        : "Select a friend..."}
+                      {selectedFriend ? selectedFriend.name : "Select a friend..."}
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -156,22 +177,16 @@ export default function NewBetPage() {
                             <CommandItem
                               key={friend.id}
                               value={friend.id}
-                              onSelect={(currentValue) => {
-                                setSelectedFriend(currentValue === selectedFriend ? "" : currentValue)
+                              onSelect={() => {
+                                setSelectedFriend(friend)
                                 setFriendOpen(false)
                               }}
                               className="hover:bg-gray-700 hover:text-white"
                             >
                               <div className="flex items-center gap-2">
-                                <Avatar className="h-6 w-6">
-                                  <AvatarImage src={friend.avatar || "/placeholder.svg"} alt={friend.name} />
-                                  <AvatarFallback className="bg-purple-600 text-white">
-                                    {friend.name
-                                      .split(" ")
-                                      .map((n) => n[0])
-                                      .join("")}
-                                  </AvatarFallback>
-                                </Avatar>
+                                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-600 text-xs text-white">
+                                  {friend.name.charAt(0)}
+                                </div>
                                 <span>{friend.name}</span>
                               </div>
                               <span
@@ -179,7 +194,7 @@ export default function NewBetPage() {
                               >
                                 {friend.status}
                               </span>
-                              {selectedFriend === friend.id && <Check className="ml-2 h-4 w-4 text-purple-500" />}
+                              {selectedFriend?.id === friend.id && <Check className="ml-2 h-4 w-4 text-purple-500" />}
                             </CommandItem>
                           ))}
                         </CommandGroup>
@@ -214,25 +229,15 @@ export default function NewBetPage() {
 
               <div className="space-y-2">
                 <Label className="text-gray-200">Payment Method</Label>
-                <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-2 gap-4">
+                <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-1 gap-4">
                   <div>
-                    <RadioGroupItem value="ecocash" id="ecocash" className="peer sr-only" />
+                    <RadioGroupItem value="wallet" id="wallet" className="peer sr-only" />
                     <Label
-                      htmlFor="ecocash"
+                      htmlFor="wallet"
                       className="flex flex-col items-center justify-between rounded-md border-2 border-gray-700 bg-gray-800 p-4 hover:bg-gray-700 hover:text-white peer-data-[state=checked]:border-purple-500 [&:has([data-state=checked])]:border-purple-500"
                     >
-                      <span className="mb-1 text-lg font-bold">EcoCash</span>
-                      <span className="text-xs text-gray-400">Mobile Money</span>
-                    </Label>
-                  </div>
-                  <div>
-                    <RadioGroupItem value="paypal" id="paypal" className="peer sr-only" />
-                    <Label
-                      htmlFor="paypal"
-                      className="flex flex-col items-center justify-between rounded-md border-2 border-gray-700 bg-gray-800 p-4 hover:bg-gray-700 hover:text-white peer-data-[state=checked]:border-purple-500 [&:has([data-state=checked])]:border-purple-500"
-                    >
-                      <span className="mb-1 text-lg font-bold">PayPal</span>
-                      <span className="text-xs text-gray-400">Online Payment</span>
+                      <span className="mb-1 text-lg font-bold">Wallet</span>
+                      <span className="text-xs text-gray-400">Current Balance: ${user?.balance.toFixed(2)}</span>
                     </Label>
                   </div>
                 </RadioGroup>
@@ -248,15 +253,11 @@ export default function NewBetPage() {
                   <div className="mb-4 grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-gray-400">Game</p>
-                      <p className="font-medium text-white">
-                        {selectedGame ? games.find((game) => game.id === selectedGame)?.name : "Not selected"}
-                      </p>
+                      <p className="font-medium text-white">{selectedGame ? selectedGame.name : "Not selected"}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-400">Opponent</p>
-                      <p className="font-medium text-white">
-                        {selectedFriend ? friends.find((friend) => friend.id === selectedFriend)?.name : "Not selected"}
-                      </p>
+                      <p className="font-medium text-white">{selectedFriend ? selectedFriend.name : "Not selected"}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-400">Bet Amount</p>
@@ -264,7 +265,7 @@ export default function NewBetPage() {
                     </div>
                     <div>
                       <p className="text-sm text-gray-400">Payment Method</p>
-                      <p className="font-medium text-white">{paymentMethod === "ecocash" ? "EcoCash" : "PayPal"}</p>
+                      <p className="font-medium text-white">Wallet</p>
                     </div>
                   </div>
                   <Separator className="my-4 bg-gray-700" />
@@ -301,14 +302,7 @@ export default function NewBetPage() {
           >
             Back
           </Button>
-          <Button
-            onClick={handleNextStep}
-            className="bg-purple-600 hover:bg-purple-700"
-            disabled={
-              (step === 1 && (!selectedGame || !selectedFriend)) ||
-              (step === 2 && (!betAmount || Number.parseFloat(betAmount) <= 0))
-            }
-          >
+          <Button onClick={handleNextStep} className="bg-purple-600 hover:bg-purple-700" disabled={isNextDisabled()}>
             {step === 3 ? "Create Bet" : "Next"}
           </Button>
         </CardFooter>

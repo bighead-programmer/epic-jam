@@ -16,12 +16,7 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-4">
             <Link href="/login">
-              <Button variant="ghost" className="text-gray-300 hover:text-white">
-                Login
-              </Button>
-            </Link>
-            <Link href="/signup">
-              <Button className="bg-purple-600 hover:bg-purple-700">Sign Up</Button>
+              <Button className="bg-purple-600 hover:bg-purple-700">Get Started</Button>
             </Link>
           </div>
         </div>
@@ -37,12 +32,12 @@ export default function Home() {
           compete, and win!
         </p>
         <div className="flex flex-col gap-4 sm:flex-row">
-          <Link href="/signup">
+          <Link href="/login">
             <Button size="lg" className="bg-purple-600 hover:bg-purple-700">
               Get Started
             </Button>
           </Link>
-          <Link href="/how-it-works">
+          <Link href="#features">
             <Button
               size="lg"
               variant="outline"
@@ -55,7 +50,7 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section className="bg-gray-800/50 py-16">
+      <section id="features" className="bg-gray-800/50 py-16">
         <div className="container px-4">
           <h2 className="mb-12 text-center text-3xl font-bold text-white">Key Features</h2>
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -72,7 +67,7 @@ export default function Home() {
             <FeatureCard
               icon={<Wallet className="h-10 w-10 text-purple-500" />}
               title="Flexible Payments"
-              description="Support for multiple payment methods including EcoCash and PayPal."
+              description="Support for multiple payment methods including mobile money and online payments."
             />
             <FeatureCard
               icon={<Trophy className="h-10 w-10 text-purple-500" />}
@@ -90,6 +85,21 @@ export default function Home() {
               description="Track your betting history and gaming performance over time."
             />
           </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="container py-16">
+        <div className="mx-auto max-w-3xl rounded-lg border border-purple-500/20 bg-purple-500/5 p-8 text-center">
+          <h2 className="mb-4 text-2xl font-bold text-white">Ready to Start Betting?</h2>
+          <p className="mb-6 text-gray-300">
+            Join Epic Jam today and start challenging friends to bets on your favorite games.
+          </p>
+          <Link href="/login">
+            <Button size="lg" className="bg-purple-600 hover:bg-purple-700">
+              Get Started Now
+            </Button>
+          </Link>
         </div>
       </section>
 

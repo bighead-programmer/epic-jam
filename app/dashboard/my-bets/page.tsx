@@ -1,25 +1,56 @@
 "use client"
 
-import { useState } from "react"
-import { Check, Clock, GamepadIcon as GameController, Trophy, X } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Clock, GamepadIcon as GameController, Trophy, X } from "lucide-react"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useAuth } from "@/lib/auth-context"
+import { useData, type Bet } from "@/lib/data-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function MyBetsPage() {
+  const { user } = useAuth()
+  const { bets, acceptBet, rejectBet, completeBet } = useData()
+  const [activeBets, setActiveBets] = useState<Bet[]>([])
+  const [pendingBets, setPendingBets] = useState<Bet[]>([])
+  const [completedBets, setCompletedBets] = useState<Bet[]>([])
   const [activeTab, setActiveTab] = useState("active")
 
+  useEffect(() => {
+    if (bets && user) {
+      // Filter active bets
+      setActiveBets(bets.filter((bet) => bet.status === "accepted"))
+
+      // Filter pending bets (both sent and received)
+      setPendingBets(bets.filter((bet) => bet.status === "pending"))
+
+      // Filter completed bets
+      setCompletedBets(bets.filter((bet) => bet.status === "completed"))
+    }
+  }, [bets, user])
+
+  const handleAccept = (betId: string) => {
+    acceptBet(betId)
+  }
+
+  const handleReject = (betId: string) => {
+    rejectBet(betId)
+  }
+
+  const handleSubmitResult = (betId: string, result: "creator_won" | "opponent_won" | "draw") => {
+    completeBet(betId, result)
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white md:text-3xl">My Bets</h1>
+        <h1 className="text-2xl font-bold text-white">My Bets</h1>
         <p className="text-gray-300">Manage and track all your bets</p>
       </div>
 
       <Tabs defaultValue="active" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-gray-800">
+        <TabsList className="grid w-full grid-cols-3 bg-gray-800">
           <TabsTrigger value="active" className="data-[state=active]:bg-purple-600">
             Active
           </TabsTrigger>
@@ -29,218 +60,136 @@ export default function MyBetsPage() {
           <TabsTrigger value="completed" className="data-[state=active]:bg-purple-600">
             Completed
           </TabsTrigger>
-          <TabsTrigger value="all" className="data-[state=active]:bg-purple-600">
-            All
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="active" className="mt-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <BetCard
-              game="Call of Duty: Mobile"
-              opponent="Alex Johnson"
-              amount="$15.00"
-              date="Today, 5:00 PM"
-              status="accepted"
-              type="active"
-            />
-            <BetCard
-              game="PUBG Mobile"
-              opponent="Sarah Williams"
-              amount="$25.00"
-              date="Tomorrow, 7:30 PM"
-              status="accepted"
-              type="active"
-            />
-            <BetCard
-              game="FIFA 24"
-              opponent="Mike Thompson"
-              amount="$10.00"
-              date="Today, 9:00 PM"
-              status="accepted"
-              type="active"
-            />
-          </div>
+          {activeBets.length > 0 ? (
+            <div className="space-y-4">
+              {activeBets.map((bet) => (
+                <ActiveBetCard key={bet.id} bet={bet} onSubmitResult={handleSubmitResult} />
+              ))}
+            </div>
+          ) : (
+            <Card className="border-gray-700 bg-gray-800/50">
+              <CardContent className="p-6 text-center">
+                <p className="text-gray-300">No active bets found.</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="pending" className="mt-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <BetCard
-              game="Fortnite"
-              opponent="Emily Davis"
-              amount="$20.00"
-              date="Pending acceptance"
-              status="pending"
-              type="pending"
-            />
-            <BetCard
-              game="Apex Legends"
-              opponent="Chris Evans"
-              amount="$30.00"
-              date="Pending acceptance"
-              status="pending"
-              type="pending"
-            />
-          </div>
+          {pendingBets.length > 0 ? (
+            <div className="space-y-4">
+              {pendingBets.map((bet) => (
+                <PendingBetCard key={bet.id} bet={bet} onAccept={handleAccept} onReject={handleReject} />
+              ))}
+            </div>
+          ) : (
+            <Card className="border-gray-700 bg-gray-800/50">
+              <CardContent className="p-6 text-center">
+                <p className="text-gray-300">No pending bets found.</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="completed" className="mt-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <BetCard
-              game="Call of Duty: Mobile"
-              opponent="Chris Evans"
-              amount="$20.00"
-              date="Yesterday"
-              status="won"
-              type="completed"
-            />
-            <BetCard
-              game="FIFA 24"
-              opponent="James Wilson"
-              amount="$10.00"
-              date="2 days ago"
-              status="lost"
-              type="completed"
-            />
-            <BetCard
-              game="PUBG Mobile"
-              opponent="Maria Garcia"
-              amount="$15.00"
-              date="Last week"
-              status="won"
-              type="completed"
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="all" className="mt-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <BetCard
-              game="Call of Duty: Mobile"
-              opponent="Alex Johnson"
-              amount="$15.00"
-              date="Today, 5:00 PM"
-              status="accepted"
-              type="active"
-            />
-            <BetCard
-              game="Fortnite"
-              opponent="Emily Davis"
-              amount="$20.00"
-              date="Pending acceptance"
-              status="pending"
-              type="pending"
-            />
-            <BetCard
-              game="Call of Duty: Mobile"
-              opponent="Chris Evans"
-              amount="$20.00"
-              date="Yesterday"
-              status="won"
-              type="completed"
-            />
-            <BetCard
-              game="PUBG Mobile"
-              opponent="Sarah Williams"
-              amount="$25.00"
-              date="Tomorrow, 7:30 PM"
-              status="accepted"
-              type="active"
-            />
-            <BetCard
-              game="FIFA 24"
-              opponent="James Wilson"
-              amount="$10.00"
-              date="2 days ago"
-              status="lost"
-              type="completed"
-            />
-          </div>
+          {completedBets.length > 0 ? (
+            <div className="space-y-4">
+              {completedBets.map((bet) => (
+                <CompletedBetCard key={bet.id} bet={bet} />
+              ))}
+            </div>
+          ) : (
+            <Card className="border-gray-700 bg-gray-800/50">
+              <CardContent className="p-6 text-center">
+                <p className="text-gray-300">No completed bets found.</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
   )
 }
 
-function BetCard({
-  game,
-  opponent,
-  amount,
-  date,
-  status,
-  type,
+function ActiveBetCard({
+  bet,
+  onSubmitResult,
 }: {
-  game: string
-  opponent: string
-  amount: string
-  date: string
-  status: "pending" | "accepted" | "won" | "lost"
-  type: "active" | "pending" | "completed"
+  bet: Bet
+  onSubmitResult: (betId: string, result: "creator_won" | "opponent_won" | "draw") => void
 }) {
+  const { user } = useAuth()
+  const isCreator = bet.creatorId === user?.id
+  const opponent = isCreator ? bet.opponentName : "You"
+  const creator = isCreator ? "You" : bet.opponentName
+
+  const [showResultOptions, setShowResultOptions] = useState(false)
+
   return (
-    <Card className="border-gray-700 bg-gray-800/50 hover:border-purple-500/50">
+    <Card className="border-gray-700 bg-gray-800/50">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <GameController className="h-5 w-5 text-purple-500" />
-            <CardTitle className="text-lg text-white">{game}</CardTitle>
+            <CardTitle className="text-lg text-white">{bet.gameName}</CardTitle>
           </div>
-          <StatusBadge status={status} />
+          <StatusBadge status="active" />
         </div>
         <CardDescription className="flex items-center text-gray-400">
-          <Clock className="mr-1 h-3 w-3" /> {date}
+          <Clock className="mr-1 h-3 w-3" /> {formatDate(bet.createdAt)}
         </CardDescription>
       </CardHeader>
       <CardContent className="pb-2">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8 border border-gray-700">
-            <AvatarImage src="/placeholder.svg?height=32&width=32" alt={opponent} />
-            <AvatarFallback className="bg-purple-600 text-white">
-              {opponent
-                .split(" ")
-                .map((n) => n[0])
-                .join("")}
-            </AvatarFallback>
-          </Avatar>
+        <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-white">{opponent}</p>
-            <p className="text-xs text-gray-400">Opponent</p>
+            <p className="text-sm font-medium text-white">
+              {creator} vs {opponent}
+            </p>
+            <p className="text-xs text-gray-400">Bet Amount: ${bet.amount.toFixed(2)}</p>
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-white">{amount}</p>
-          <p className="text-xs text-gray-400">Bet Amount</p>
-        </div>
-        {type === "active" && (
-          <Button size="sm" variant="outline" className="border-gray-700 bg-gray-700/50 text-white hover:bg-gray-700">
+      <CardFooter className="flex flex-col">
+        {!showResultOptions ? (
+          <Button onClick={() => setShowResultOptions(true)} className="w-full bg-purple-600 hover:bg-purple-700">
             Submit Result
           </Button>
-        )}
-        {type === "pending" && (
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-500">
-              <X className="h-4 w-4" />
+        ) : (
+          <div className="w-full space-y-3">
+            <p className="text-sm text-gray-300">Who won the game?</p>
+            <div className="grid grid-cols-3 gap-2">
+              <Button
+                variant="outline"
+                className="border-gray-700 bg-gray-700/50 text-white hover:bg-gray-700"
+                onClick={() => onSubmitResult(bet.id, isCreator ? "creator_won" : "opponent_won")}
+              >
+                I Won
+              </Button>
+              <Button
+                variant="outline"
+                className="border-gray-700 bg-gray-700/50 text-white hover:bg-gray-700"
+                onClick={() => onSubmitResult(bet.id, "draw")}
+              >
+                Draw
+              </Button>
+              <Button
+                variant="outline"
+                className="border-gray-700 bg-gray-700/50 text-white hover:bg-gray-700"
+                onClick={() => onSubmitResult(bet.id, isCreator ? "opponent_won" : "creator_won")}
+              >
+                Opponent Won
+              </Button>
+            </div>
+            <Button
+              variant="ghost"
+              className="w-full text-gray-400 hover:text-white"
+              onClick={() => setShowResultOptions(false)}
+            >
+              Cancel
             </Button>
-            <Button size="sm" className="h-8 w-8 bg-green-600 p-0 hover:bg-green-700">
-              <Check className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-        {type === "completed" && (
-          <div className={`flex items-center gap-1 ${status === "won" ? "text-green-500" : "text-red-500"}`}>
-            {status === "won" ? (
-              <>
-                <Trophy className="h-4 w-4" />
-                <span className="text-sm font-medium">Won</span>
-              </>
-            ) : (
-              <>
-                <X className="h-4 w-4" />
-                <span className="text-sm font-medium">Lost</span>
-              </>
-            )}
           </div>
         )}
       </CardFooter>
@@ -248,20 +197,148 @@ function BetCard({
   )
 }
 
-function StatusBadge({ status }: { status: "pending" | "accepted" | "won" | "lost" }) {
+function PendingBetCard({
+  bet,
+  onAccept,
+  onReject,
+}: {
+  bet: Bet
+  onAccept: (betId: string) => void
+  onReject: (betId: string) => void
+}) {
+  const { user } = useAuth()
+  const isCreator = bet.creatorId === user?.id
+  const opponent = isCreator ? bet.opponentName : "You"
+  const creator = isCreator ? "You" : bet.opponentName
+
+  return (
+    <Card className="border-gray-700 bg-gray-800/50">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <GameController className="h-5 w-5 text-purple-500" />
+            <CardTitle className="text-lg text-white">{bet.gameName}</CardTitle>
+          </div>
+          <StatusBadge status="pending" />
+        </div>
+        <CardDescription className="flex items-center text-gray-400">
+          <Clock className="mr-1 h-3 w-3" /> {formatDate(bet.createdAt)}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-white">
+              {creator} vs {opponent}
+            </p>
+            <p className="text-xs text-gray-400">Bet Amount: ${bet.amount.toFixed(2)}</p>
+          </div>
+        </div>
+      </CardContent>
+      <CardFooter>
+        {isCreator ? (
+          <p className="text-sm text-gray-400">Waiting for opponent to accept...</p>
+        ) : (
+          <div className="flex w-full gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 border-gray-700 bg-gray-700/50 text-white hover:bg-gray-700"
+              onClick={() => onReject(bet.id)}
+            >
+              Decline
+            </Button>
+            <Button className="flex-1 bg-purple-600 hover:bg-purple-700" onClick={() => onAccept(bet.id)}>
+              Accept
+            </Button>
+          </div>
+        )}
+      </CardFooter>
+    </Card>
+  )
+}
+
+function CompletedBetCard({ bet }: { bet: Bet }) {
+  const { user } = useAuth()
+  const isCreator = bet.creatorId === user?.id
+  const opponent = isCreator ? bet.opponentName : "You"
+  const creator = isCreator ? "You" : bet.opponentName
+
+  let resultText = "Draw"
+  let resultColor = "text-yellow-500"
+
+  if (bet.result === "creator_won") {
+    resultText = isCreator ? "You Won" : "You Lost"
+    resultColor = isCreator ? "text-green-500" : "text-red-500"
+  } else if (bet.result === "opponent_won") {
+    resultText = isCreator ? "You Lost" : "You Won"
+    resultColor = isCreator ? "text-red-500" : "text-green-500"
+  }
+
+  return (
+    <Card className="border-gray-700 bg-gray-800/50">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <GameController className="h-5 w-5 text-purple-500" />
+            <CardTitle className="text-lg text-white">{bet.gameName}</CardTitle>
+          </div>
+          <StatusBadge status="completed" />
+        </div>
+        <CardDescription className="flex items-center text-gray-400">
+          <Clock className="mr-1 h-3 w-3" /> {formatDate(bet.createdAt)}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-white">
+              {creator} vs {opponent}
+            </p>
+            <p className="text-xs text-gray-400">Bet Amount: ${bet.amount.toFixed(2)}</p>
+          </div>
+          <div className={`flex items-center gap-1 ${resultColor}`}>
+            {resultText === "You Won" && <Trophy className="h-4 w-4" />}
+            {resultText === "You Lost" && <X className="h-4 w-4" />}
+            <span className="font-medium">{resultText}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function StatusBadge({ status }: { status: "pending" | "active" | "completed" }) {
   const colors = {
     pending: "bg-yellow-500/20 text-yellow-500 border-yellow-500/50",
-    accepted: "bg-green-500/20 text-green-500 border-green-500/50",
-    won: "bg-green-500/20 text-green-500 border-green-500/50",
-    lost: "bg-red-500/20 text-red-500 border-red-500/50",
+    active: "bg-green-500/20 text-green-500 border-green-500/50",
+    completed: "bg-blue-500/20 text-blue-500 border-blue-500/50",
   }
 
   const labels = {
     pending: "Pending",
-    accepted: "Accepted",
-    won: "Won",
-    lost: "Lost",
+    active: "Active",
+    completed: "Completed",
   }
 
   return <span className={`rounded-full border px-2 py-1 text-xs font-medium ${colors[status]}`}>{labels[status]}</span>
+}
+
+function formatDate(dateString: string) {
+  const date = new Date(dateString)
+  const now = new Date()
+
+  // If today
+  if (date.toDateString() === now.toDateString()) {
+    return `Today, ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+  }
+
+  // If yesterday
+  const yesterday = new Date(now)
+  yesterday.setDate(now.getDate() - 1)
+  if (date.toDateString() === yesterday.toDateString()) {
+    return `Yesterday, ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+  }
+
+  // Otherwise
+  return date.toLocaleDateString()
 }

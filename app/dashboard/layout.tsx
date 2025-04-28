@@ -2,45 +2,46 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import {
-  Bell,
-  ChevronDown,
-  GamepadIcon as GameController,
-  History,
-  Home,
-  LogOut,
-  Menu,
-  Plus,
-  Settings,
-  Trophy,
-  User,
-  Wallet,
-  X,
-} from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import { GamepadIcon as GameController, Home, Plus, Trophy, Wallet, LogOut } from "lucide-react"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { useAuth } from "@/lib/auth-context"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
   const pathname = usePathname()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { user, isLoading, logout } = useAuth()
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push("/login")
+    }
+  }, [isLoading, user, router])
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-500 border-t-transparent"></div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
+
+  const handleLogout = () => {
+    logout()
+    router.push("/")
+  }
 
   const navigation = [
-    { name: "Dashboard", href: "/dashboard", icon: Home },
+    { name: "Home", href: "/dashboard", icon: Home },
     { name: "New Bet", href: "/dashboard/new-bet", icon: Plus },
     { name: "My Bets", href: "/dashboard/my-bets", icon: Trophy },
-    { name: "History", href: "/dashboard/history", icon: History },
     { name: "Wallet", href: "/dashboard/wallet", icon: Wallet },
   ]
 
@@ -49,118 +50,48 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-gray-800 bg-gray-900/80 backdrop-blur-sm">
         <div className="container flex h-16 items-center justify-between px-4">
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <GameController className="h-6 w-6 text-purple-500" />
+            <span className="text-xl font-bold text-white">Epic Jam</span>
+          </Link>
           <div className="flex items-center gap-2">
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetTrigger asChild className="md:hidden">
-                <Button variant="ghost" size="icon" className="text-gray-300">
-                  <Menu className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="border-gray-800 bg-gray-900 p-0">
-                <div className="flex h-16 items-center border-b border-gray-800 px-4">
-                  <Link
-                    href="/dashboard"
-                    className="flex items-center gap-2"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <GameController className="h-6 w-6 text-purple-500" />
-                    <span className="text-xl font-bold text-white">Epic Jam</span>
-                  </Link>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="ml-auto text-gray-300"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <X className="h-6 w-6" />
-                  </Button>
-                </div>
-                <nav className="flex flex-col p-4">
-                  {navigation.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${
-                        pathname === item.href
-                          ? "bg-purple-600 text-white"
-                          : "text-gray-300 hover:bg-gray-800 hover:text-white"
-                      }`}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      {item.name}
-                    </Link>
-                  ))}
-                </nav>
-              </SheetContent>
-            </Sheet>
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <GameController className="h-6 w-6 text-purple-500" />
-              <span className="text-xl font-bold text-white">Epic Jam</span>
-            </Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="text-gray-300 hover:text-white">
-              <Bell className="h-5 w-5" />
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2 text-gray-300 hover:text-white">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src="/placeholder.svg?height=32&width=32" alt="User" />
-                    <AvatarFallback className="bg-purple-600 text-white">JD</AvatarFallback>
-                  </Avatar>
-                  <span className="hidden md:inline">John Doe</span>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 border-gray-700 bg-gray-800 text-gray-200">
-                <DropdownMenuItem className="hover:bg-gray-700 hover:text-white">
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-gray-700 hover:text-white">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-gray-700" />
-                <Link href="/">
-                  <DropdownMenuItem className="hover:bg-gray-700 hover:text-white">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
-                </Link>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <span className="text-sm text-gray-300">${user.balance.toFixed(2)}</span>
+            <button
+              onClick={handleLogout}
+              className="ml-2 rounded-full p-2 text-gray-300 hover:bg-gray-800 hover:text-white"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex flex-1">
-        {/* Sidebar (desktop) */}
-        <aside className="hidden w-64 border-r border-gray-800 bg-gray-900/50 md:block">
-          <nav className="flex flex-col p-4">
-            {navigation.map((item) => (
+      {/* Content */}
+      <main className="flex-1 overflow-auto p-4">{children}</main>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 z-10 w-full border-t border-gray-800 bg-gray-900/80 backdrop-blur-sm">
+        <div className="container flex h-16 items-center justify-around px-4">
+          {navigation.map((item) => {
+            const isActive = pathname === item.href
+            return (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${
-                  pathname === item.href
-                    ? "bg-purple-600 text-white"
-                    : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                className={`flex flex-col items-center justify-center ${
+                  isActive ? "text-purple-500" : "text-gray-400 hover:text-white"
                 }`}
               >
-                <item.icon className="h-5 w-5" />
-                {item.name}
+                <item.icon className="h-6 w-6" />
+                <span className="mt-1 text-xs">{item.name}</span>
               </Link>
-            ))}
-          </nav>
-        </aside>
+            )
+          })}
+        </div>
+      </nav>
 
-        {/* Content */}
-        <main className="flex-1 overflow-auto p-4 md:p-8">{children}</main>
-      </div>
+      {/* Bottom padding to account for mobile navigation */}
+      <div className="h-16"></div>
     </div>
   )
 }
